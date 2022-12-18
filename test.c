@@ -27,13 +27,13 @@ int main(void){
 	int i, j, l, fdin, fderr, fdout, nump, estado, largo;	//contadores, variabels para for, uso de numeracion variada
 	
 	int *comandos;
-	tBG *backgraund;		//creamos un array de estructuras para que vaya guardando nuestros datos
-	bool acabado, correcto;		//nos dice si un programa de backgraund ha acabado del todo o falta por ejecutarse algun programa (acabado=true; no acabdo = false)
+	tBG *background;		//creamos un array de estructuras para que vaya guardando nuestros datos
+	bool acabado, correcto;		//nos dice si un programa de background ha acabado del todo o falta por ejecutarse algun programa (acabado=true; no acabdo = false)
 	
-	/* DB BACKGRAUND */
-	//cremos un array para guardar el pid o los pids de los procesos que están en backgraund, al igual que su promp
+	/* DB background */
+	//cremos un array para guardar el pid o los pids de los procesos que están en background, al igual que su promp
 	//se creara nuevo cada vez que se inicie la minishell, memoria incial = 4 procesos
-	backgraund = malloc(4*sizeof(backgraund));	//cremos un array dinámico que en un principio tendrá espacio para 4 procesos en segundo plano	
+	background = malloc(4*sizeof(background));	//cremos un array dinámico que en un principio tendrá espacio para 4 procesos en segundo plano	
 	nump = 0;	//inicializar numero de procesos actuales en bg
 	
 	signal(SIGINT,SIG_IGN); //La minishell ignora el Ctrl+C
@@ -45,15 +45,15 @@ int main(void){
 		
 		line = tokenize(buf);
 		
-		/* BACKGRAUND */
+		/* background */
 		//Comprobamos que queden hijos (procesos) activos o no
 		for(i=nump-1; i>=0; i--){		//recorremos los hijos de abajo arriba, esto ayuda que se si no hay ningun proceso en bg => i=nump-1=-1<0
 			acabado = true;		//el proceso en un principio está acabado hasta que se demuestre lo contrario
 			j=0;
 			
 			//comprobar que todos los procesos de esa ejecuación han acabado									
-			while(backgraund[i].pids[j] != '\0'){	
-				estado = waitpid(backgraund[i].pids[j], NULL, WNOHANG);	//comprobamos si su estado se ha actualzado
+			while(background[i].pids[j] != '\0'){	
+				estado = waitpid(background[i].pids[j], NULL, WNOHANG);	//comprobamos si su estado se ha actualzado
 				if(estado != -1){					//en el caso de que su estado sea -1, significa que han acabado
 					acabado = false;				//si se demuestra lo contrario, el procesa no puede estar acabado
 				} 
@@ -62,14 +62,14 @@ int main(void){
 			
 			//en el caso de que todos los procesos de esa ejecucion hayan finalizados, se espera a que mueran y se ignoran en el array
 			if(acabado == true){					//en el caso de que acabdo sea true, significa que han acabado
-				printf("El trabajo %s ha acabado.\n",backgraund[i].promp);	//mostrasmos el proceso que ya ha acabado
+				printf("El trabajo %s ha acabado.\n",background[i].promp);	//mostrasmos el proceso que ya ha acabado
 				
-				while(backgraund[i].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos mueran para que no se quede zombi una vez finalizado
-					waitpid(backgraund[i].pids[j], 0, 0);			
+				while(background[i].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos mueran para que no se quede zombi una vez finalizado
+					waitpid(background[i].pids[j], 0, 0);			
 				}
 				
 				for (l = i; l < nump - 1; l++) {			//recolocamos el array una posición cada casilla hacia arriba para ordenarlo
-                    			backgraund[l] = backgraund[l+1];		
+                    			background[l] = background[l+1];		
                 		}
                 		nump--;
 			}
@@ -90,11 +90,11 @@ int main(void){
 		if(strcmp(line->commands[0].argv[0],"jobs") == 0){
 		
 			if(nump == 0){
-				printf("No hay procesos en backgraund ejecutandose.\n");
+				printf("No hay procesos en background ejecutandose.\n");
 			} 
 			else{
-				for(i=0; i<nump; i++){				//recorremos las casillas del array en función de los hijos que se hayan creado en backgraund
-					printf("[%d]+ Running    %s \n",i+1,backgraund[i].promp);
+				for(i=0; i<nump; i++){				//recorremos las casillas del array en función de los hijos que se hayan creado en background
+					printf("[%d]+ Running    %s \n",i+1,background[i].promp);
 				}
 			}
 		}
@@ -103,17 +103,17 @@ int main(void){
 		else if(strcmp(line->commands[0].argv[0],"fg") == 0){
 			//si el comando fg no tiene argumentos (numero)
 			if(line->commands[0].argv[1] == NULL){
-				//si no hay procesos en el backgraund
+				//si no hay procesos en el background
 				if(nump == 0){	
-					printf("No hay procesos en backgraund ejecutandose.\n");
+					printf("No hay procesos en background ejecutandose.\n");
 				}
-				//si hay procesos en el backgraund
+				//si hay procesos en el background
 				else{
-					printf("El trabajo %s esta en foregraund.\n",backgraund[nump-1].promp);
+					printf("El trabajo %s esta en foregraund.\n",background[nump-1].promp);
 					j=0;
 					
-					while(backgraund[nump-1].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos acaben
-						waitpid(backgraund[nump-1].pids[j], 0, 0);			
+					while(background[nump-1].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos acaben
+						waitpid(background[nump-1].pids[j], 0, 0);			
 						j++;
 					}
                 			nump--;
@@ -128,23 +128,23 @@ int main(void){
 					printf("Demasiados argumentos para el fg.\n");
 				}
 				
-				//si no hay procesos en el backgraund
+				//si no hay procesos en el background
 				else if(nump == 0){
-					printf("No hay procesos en backgraund ejecutandose.\n");
+					printf("No hay procesos en background ejecutandose.\n");
 				}
 				
-				//si hay procesos en el backgraund y el numero es uno de los procesos
+				//si hay procesos en el background y el numero es uno de los procesos
 				else if(pb > 0 || pb < nump+2){
-					printf("El trabajo %s esta en foregraund.\n",backgraund[pb-1].promp);
+					printf("El trabajo %s esta en foregraund.\n",background[pb-1].promp);
 					j=0;
 					
-					while(backgraund[pb-1].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos acaben
-						waitpid(backgraund[pb-1].pids[j], 0, 0);			
+					while(background[pb-1].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos acaben
+						waitpid(background[pb-1].pids[j], 0, 0);			
 						j++;
 					}
                 			
                 			for (l = pb-1; l < nump - 1; l++) {			//recolocamos el array una posición cada casilla hacia arriba para ordenarlo
-                    				backgraund[l] = backgraund[l+1];		
+                    				background[l] = background[l+1];		
                 			}	
                 			nump--;
 				}
@@ -161,8 +161,8 @@ int main(void){
 		else if(strcmp(line->commands[0].argv[0],"exit") == 0){
 			for(i=0; i<nump; i++){
 				j=0;
-				while(backgraund[i].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos acaben
-					waitpid(backgraund[i].pids[j], 0, 0);			
+				while(background[i].pids[j] != '\0'){		//hacemos que el padre espere un momento a que los hijos acaben
+					waitpid(background[i].pids[j], 0, 0);			
 					j++;
 				}
 			}
@@ -207,12 +207,12 @@ int main(void){
 
 
 
-		/* FOREGRAUND Y BACKGRAUND***/
+		/* FOREGRAUND Y background***/
 		else{	
 			int p[line->ncommands - 1][2];
 			pid_t pid;
 
-			////* UN COMANDO FOREGRAUND Y BACKGRAUND *////
+			////* UN COMANDO FOREGRAUND Y background *////
 			if (line->ncommands == 1){
 
 				// si el mandato no exite
@@ -223,7 +223,7 @@ int main(void){
 				// si el mandato exite
 				else{
 				
-					//* UN COMANDO BACKGRAUND *//
+					//* UN COMANDO background *//
 					if(line->background){
 					
 						pid = fork();
@@ -236,9 +236,9 @@ int main(void){
 						//hijo
 						if (pid == 0){	
 							
-							signal(SIGINT,SIG_DFL); //El proceso hijo vuelve a poder ser sensible a la señal Ctrl+C
+							signal(SIGINT,SIG_IGN); //El hijo ignora el Ctrl+C
 						
-							// sacamos la solución por un fichero
+							// recibimos la solución por un fichero
 							if (line->redirect_input != NULL){
 								fdin = open(line->redirect_input, O_RDONLY, 777);
 
@@ -272,19 +272,19 @@ int main(void){
 						
 							signal(SIGINT,SIG_IGN); //El padre ignora el Ctrl+C
 						
-							//en el caso de que la memeoria del backgraund esté llena, aumentamos su espacio
+							//en el caso de que la memeoria del background esté llena, aumentamos su espacio
 							if(nump > 4){
-								backgraund = realloc(backgraund, (nump+1)*sizeof(backgraund));
+								background = realloc(background, (nump+1)*sizeof(background));
 							}
 						
 							//metemos en este caso el unico pid y promp del exec en nuestro array
-							backgraund[nump].pids = (int*) malloc(1*sizeof(int));	//damos espacio para un pid en este caso
-							backgraund[nump].pids[0] = pid;				//metemos al array el pid del hijo
-							strcpy(backgraund[nump].promp,buf);	//metemos al array lo que hay en buffer
+							background[nump].pids = (int*) malloc(1*sizeof(int));	//damos espacio para un pid en este caso
+							background[nump].pids[0] = pid;				//metemos al array el pid del hijo
+							strcpy(background[nump].promp,buf);	//metemos al array lo que hay en buffer
 							
 							nump++;
 						}
-					} //fin un comando backgraund
+					} //fin un comando background
 				
 				
 					//* UN COMANDO FOREGRAUND *//
@@ -299,7 +299,7 @@ int main(void){
 						
 							signal(SIGINT,SIG_DFL); //El proceso hijo vuelve a poder ser sensible a la señal Ctrl+C
 
-							// sacamos la solución por un fichero
+							// recibimos la solución por un fichero
 							if (line->redirect_input != NULL){
 								printf("redirección de entrada: %s\n", line->redirect_input);
 								fdin = open(line->redirect_input, O_RDONLY, 777);
@@ -345,7 +345,7 @@ int main(void){
 
 
 
-			////* MAS DE UN COMANDO FOREGRAUND Y BACKGRAUND *////
+			////* MAS DE UN COMANDO FOREGRAUND Y background *////
 			else if (line->ncommands > 1){
 				
 				// Inicializar pipes
@@ -355,10 +355,10 @@ int main(void){
 				
 				
 				
-				//* MAS DE UN COMANDO BACKGRAUND *//
+				//* MAS DE UN COMANDO background *//
 				if(line->background){
 														
-					correcto = true;		// se llevará el comando a backgraund hasta que se demuestre lo contrario
+					correcto = true;		// se llevará el comando a background hasta que se demuestre lo contrario
 					comandos = (int*) malloc(line->ncommands*sizeof(int));	//damos espacio para cada pid de cada hijo
 					
 					// Creacion de los hijos y utilizacion de pipes
@@ -367,7 +367,7 @@ int main(void){
 						// si el mandato no exite
 						if (line->commands[i].filename == NULL){
 							printf("mandato %s incorrecto: No se encuentra el mandato\n",line->commands[i].argv[0]);
-							correcto = false;	//como se demuestra lo contrario, el comando no se llevará a backgraund
+							correcto = false;	//como se demuestra lo contrario, el comando no se llevará a background
 						}
 						
 						// si el mandato exite
@@ -383,7 +383,7 @@ int main(void){
 							/* proceso hijo */
 							else if (pid == 0){
 							
-								signal(SIGINT,SIG_DFL); //El proceso hijo vuelve a poder ser sensible a la señal Ctrl+C
+								signal(SIGINT,SIG_IGN); //El hijo ignora el Ctrl+C
 
 								// Primer elemento commands
 								if (i == 0){
@@ -468,13 +468,13 @@ int main(void){
 					} // fin for hijos y padre
 					
 					if(correcto == true){
-						//en el caso de que la memeoria del backgraund esté llena, aumentamos su espacio
+						//en el caso de que la memeoria del background esté llena, aumentamos su espacio
 						if(nump > 4){
-							backgraund = realloc(backgraund, (nump+1)*sizeof(backgraund));
+							background = realloc(background, (nump+1)*sizeof(background));
 						}
 						
-						strcpy(backgraund[nump].promp, buf);
-						backgraund[nump].pids = comandos;
+						strcpy(background[nump].promp, buf);
+						background[nump].pids = comandos;
 						nump++;	
 					}			
 				}  //fin mas de un comando foregraund
@@ -585,11 +585,11 @@ int main(void){
 						} //fin si el mandato exite
 					} // fin for hijos y padre
 				}// fin mas de un comando foregraund
-			} // fin mas de un comando backgraund y foregraund
+			} // fin mas de un comando background y foregraund
 		}// fin solo comandos
 		printf("msh> ");	
 	}
 	
-	free(backgraund);
+	free(background);
 	return 0;
 }
