@@ -41,13 +41,9 @@ int main(void){
 	/* PROGRAMA */
 	printf("msh> ");
 	while (fgets(buf, BUF, stdin)){
-
 		signal(SIGINT,SIG_IGN); //La minishell ignora el Ctrl+C
 		
 		line = tokenize(buf);
-		
-		largo = strlen(buf);
-		buf[largo-1] = ' ';
 		
 		/* BACKGRAUND */
 		//Comprobamos que queden hijos (procesos) activos o no
@@ -81,17 +77,17 @@ int main(void){
 		
 		
 		/* NO VÁLIDO */
-		if(line == NULL || strcmp(buf,"\n") == 0){
+		if(line == NULL || strcmp(buf,"\n")==0 || strcmp(buf,"^C")==0){
 			continue;
 		}
 		
+		largo = strlen(buf);	//quitamos el salto de línea para una mejor presentación
+		buf[largo-1] = ' ';
 		
 		
 		/* COMANDOS CREADOS */
-		//SIGINT (CTRL+C)
-		
 		//JOBS
-		else if(strcmp(line->commands[0].argv[0],"jobs") == 0){
+		if(strcmp(line->commands[0].argv[0],"jobs") == 0){
 		
 			if(nump == 0){
 				printf("No hay procesos en backgraund ejecutandose.\n");
